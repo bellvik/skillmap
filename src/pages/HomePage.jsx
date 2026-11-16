@@ -13,7 +13,7 @@ const HomePage = () => {
       
       <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
         <Link 
-          to="/choose-profession" 
+          to="/professions" 
           className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl"
         >
           Выбрать профессию
