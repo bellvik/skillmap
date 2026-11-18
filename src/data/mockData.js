@@ -247,14 +247,17 @@ export const getProfessions = () => {
 };
 
 export const getProfessionById = (id) => {
-  return mockData.professions.find(prof => prof.id === id);
+  return mockData.professions.find(prof => String(prof.id) === String(id));
 };
 
 export const getSkillsByProfession = (professionId) => {
-  const profession = mockData.professions.find(p => p.id === professionId);
+  // Приводим оба значения к строке для надежного сравнения
+  const profession = mockData.professions.find(p => String(p.id) === String(professionId));
+  
   if (!profession) return [];
   
   return profession.skills.map(skillId => 
-    mockData.skills.find(s => s.id === skillId)
+    
+    mockData.skills.find(s => String(s.id) === String(skillId))
   ).filter(skill => skill !== undefined);
 };
