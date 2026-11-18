@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getProfessionById, getSkillsByProfession } from '../data/mockData';
+import SkillDetailModal from '../components/SkillDetailModal';
 
 const SkillMapPage = () => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const SkillMapPage = () => {
   const [mapData, setMapData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedSkill, setSelectedSkill] = useState(null);
 
   // Загрузка данных
   useEffect(() => {
@@ -193,7 +195,10 @@ const SkillMapPage = () => {
                   )}
 
                   {/* Заготовка под UC-5 (Раскрытие навыка) */}
-                  <button className="mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium w-full text-left">
+                  <button
+                    onClick={() => setSelectedSkill(skill)}
+                    className="mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium w-full text-left"
+                  >
                     Подробнее о навыке →
                   </button>
                 </div>
@@ -202,6 +207,14 @@ const SkillMapPage = () => {
           </div>
         ))}
       </div>
+        {selectedSkill && (
+            <SkillDetailModal
+                skill={selectedSkill}
+                allSkills={skills}
+                isMastered={mapData?.selectedSkillIds?.some(sid => String(sid) === String(selectedSkill.id))}
+                onClose={() => setSelectedSkill(null)}
+            />
+        )}
     </div>
   );
 };

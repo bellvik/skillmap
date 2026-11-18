@@ -28,151 +28,25 @@ const mockData = {
   ],
   
   skills: [
-    {
-      id: 1,
-      name: "HTML",
-      categoryId: 1,
-      description: "Структура веб-страниц",
-      prerequisites: [],
-      order: 1
-    },
-    {
-      id: 2,
-      name: "CSS",
-      categoryId: 1,
-      description: "Стилизация веб-страниц",
-      prerequisites: [1],
-      order: 2
-    },
-    {
-      id: 3,
-      name: "JavaScript",
-      categoryId: 1,
-      description: "Язык программирования для веба",
-      prerequisites: [1, 2],
-      order: 3
-    },
-    {
-      id: 4,
-      name: "React",
-      categoryId: 1,
-      description: "Библиотека для создания пользовательских интерфейсов",
-      prerequisites: [3],
-      order: 4
-    },
-    {
-      id: 5,
-      name: "TypeScript",
-      categoryId: 1,
-      description: "Строго типизированный язык программирования",
-      prerequisites: [3],
-      order: 5
-    },
-    {
-      id: 6,
-      name: "Git",
-      categoryId: 2,
-      description: "Система контроля версий",
-      prerequisites: [],
-      order: 1
-    },
-    {
-      id: 7,
-      name: "Python",
-      categoryId: 3,
-      description: "Язык программирования для анализа данных",
-      prerequisites: [],
-      order: 1
-    },
-    {
-      id: 8,
-      name: "NumPy",
-      categoryId: 3,
-      description: "Библиотека для работы с массивами данных",
-      prerequisites: [7],
-      order: 2
-    },
-    {
-      id: 9,
-      name: "Pandas",
-      categoryId: 3,
-      description: "Библиотека для анализа данных",
-      prerequisites: [7, 8],
-      order: 3
-    },
-    {
-      id: 10,
-      name: "Scikit-learn",
-      categoryId: 3,
-      description: "Библиотека машинного обучения",
-      prerequisites: [7, 8, 9],
-      order: 4
-    },
-    {
-      id: 11,
-      name: "SQL",
-      categoryId: 3,
-      description: "Язык запросов к базам данных",
-      prerequisites: [],
-      order: 5
-    },
-    {
-      id: 12,
-      name: "Jupyter Notebook",
-      categoryId: 3,
-      description: "Среда для анализа данных",
-      prerequisites: [7],
-      order: 6
-    },
-    {
-      id: 13,
-      name: "Docker",
-      categoryId: 4,
-      description: "Платформа контейнеризации",
-      prerequisites: [],
-      order: 1
-    },
-    {
-      id: 14,
-      name: "Kubernetes",
-      categoryId: 4,
-      description: "Платформа оркестрации контейнеров",
-      prerequisites: [13],
-      order: 2
-    },
-    {
-      id: 15,
-      name: "AWS",
-      categoryId: 4,
-      description: "Облачные сервисы Amazon",
-      prerequisites: [],
-      order: 3
-    },
-    {
-      id: 16,
-      name: "CI/CD",
-      categoryId: 4,
-      description: "Практики непрерывной интеграции и доставки",
-      prerequisites: [13, 15],
-      order: 4
-    },
-    {
-      id: 17,
-      name: "Linux",
-      categoryId: 4,
-      description: "Операционная система для серверов",
-      prerequisites: [],
-      order: 5
-    },
-    {
-      id: 18,
-      name: "Terraform",
-      categoryId: 4,
-      description: "Инструмент для инфраструктуры как кода",
-      prerequisites: [15],
-      order: 6
-    }
-  ],
+  { id: 1, name: "HTML", categoryId: 1, description: "Структура веб-страниц", prerequisites: [], order: 1, resourceIds: [1] },
+  { id: 2, name: "CSS", categoryId: 1, description: "Стилизация веб-страниц", prerequisites: [1], order: 2, resourceIds: [1] },
+  { id: 3, name: "JavaScript", categoryId: 1, description: "Язык программирования для веба", prerequisites: [1, 2], order: 3, resourceIds: [2] },
+  { id: 4, name: "React", categoryId: 1, description: "Библиотека для создания пользовательских интерфейсов", prerequisites: [3], order: 4, resourceIds: [3] },
+  { id: 5, name: "TypeScript", categoryId: 1, description: "Строго типизированный язык программирования", prerequisites: [3], order: 5, resourceIds: [] },
+  { id: 6, name: "Git", categoryId: 2, description: "Система контроля версий", prerequisites: [], order: 1, resourceIds: [] },
+  { id: 7, name: "Python", categoryId: 3, description: "Язык программирования для анализа данных", prerequisites: [], order: 1, resourceIds: [4] },
+  { id: 8, name: "NumPy", categoryId: 3, description: "Библиотека для работы с массивами данных", prerequisites: [7], order: 2, resourceIds: [] },
+  { id: 9, name: "Pandas", categoryId: 3, description: "Библиотека для анализа данных", prerequisites: [7, 8], order: 3, resourceIds: [] },
+  { id: 10, name: "Scikit-learn", categoryId: 3, description: "Библиотека машинного обучения", prerequisites: [7, 8, 9], order: 4, resourceIds: [] },
+  { id: 11, name: "SQL", categoryId: 3, description: "Язык запросов к базам данных", prerequisites: [], order: 5, resourceIds: [] },
+  { id: 12, name: "Jupyter Notebook", categoryId: 3, description: "Среда для анализа данных", prerequisites: [7], order: 6, resourceIds: [] },
+  { id: 13, name: "Docker", categoryId: 4, description: "Платформа контейнеризации", prerequisites: [], order: 1, resourceIds: [5] },
+  { id: 14, name: "Kubernetes", categoryId: 4, description: "Платформа оркестрации контейнеров", prerequisites: [13], order: 2, resourceIds: [] },
+  { id: 15, name: "AWS", categoryId: 4, description: "Облачные сервисы Amazon", prerequisites: [], order: 3, resourceIds: [] },
+  { id: 16, name: "CI/CD", categoryId: 4, description: "Практики непрерывной интеграции и доставки", prerequisites: [13, 15], order: 4, resourceIds: [] },
+  { id: 17, name: "Linux", categoryId: 4, description: "Операционная система для серверов", prerequisites: [], order: 5, resourceIds: [] },
+  { id: 18, name: "Terraform", categoryId: 4, description: "Инструмент для инфраструктуры как кода", prerequisites: [15], order: 6, resourceIds: [] }
+],
   
   categories: [
     {
@@ -201,7 +75,7 @@ const mockData = {
     {
       id: 1,
       name: "Учебник по HTML и CSS",
-      url: "https://example.com/html-css-guide",
+      url: "https://code.mu/ru/markup/book/prime/",
       type: "book",
       language: "ru",
       duration: "10 часов"
@@ -260,4 +134,16 @@ export const getSkillsByProfession = (professionId) => {
     
     mockData.skills.find(s => String(s.id) === String(skillId))
   ).filter(skill => skill !== undefined);
+};
+
+export const getResourcesByIds = (resourceIds) => {
+  if (!resourceIds || resourceIds.length === 0) return [];
+  return resourceIds
+    .map(rid => mockData.resources.find(r => String(r.id) === String(rid)))
+    .filter(Boolean);
+};
+
+export const getCategoryName = (categoryId) => {
+  const cat = mockData.categories.find(c => String(c.id) === String(categoryId));
+  return cat ? cat.name : 'Общее';
 };
