@@ -172,6 +172,16 @@ const SkillMapPage = () => {
     setSelectedSkill(null); // Закрываем модалку
   };
 
+  const gaps = skills.filter(skill => {
+    const status = currentUser
+      ? userSkillStatuses[String(skill.id)] || 'not_started'
+      : (mapData?.selectedSkillIds?.some(sid => String(sid) === String(skill.id)) 
+          ? 'mastered' 
+          : 'not_started');
+    return status !== 'mastered';
+  });
+
+  const hasGaps = gaps.length > 0;
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
@@ -192,6 +202,24 @@ const SkillMapPage = () => {
               ← В Мои карты
             </Link>
           )}
+          {currentUser && hasGaps && (
+          <Link
+            to={`/professions/${id}/plan`}
+            className="ml-auto inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+          >
+            План обучения
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+              {gaps.length}
+            </span>
+          </Link>
+        )}
+
+        {/* Если всё освоено — зелёный бейдж вместо кнопки */}
+        {currentUser && !hasGaps && (
+          <span className="ml-auto inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg">
+            Все навыки освоены
+          </span>
+        )}
         </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{profession.name}</h1>
         <p className="text-gray-600 mb-4">{profession.description}</p>

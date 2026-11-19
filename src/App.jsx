@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import ProfessionSetupPage from './pages/ProfessionSetupPage';
 import SkillMapPage from './pages/SkillMapPage';
 import MyMapsPage from './pages/MyMapsPage';
+import LearningPlanPage from './pages/LearningPlanPage';
 
 // Опционально: компонент для страницы 404
 const NotFound = () => (
@@ -30,7 +31,9 @@ function App() {
         <Route path="/professions" element={<ProfessionsPage />} />
         <Route path="/professions/:id/setup" element={<ProfessionSetupPage />} />
         <Route path="/professions/:id/map" element={<SkillMapPage />} />
+         <Route path="/professions/:id/plan" element={<LearningPlanPage />} />
         <Route path="/login" element={<LoginPage />} />
+        
 
         {/* Защищенные маршруты (только для авторизованных) */}
         <Route 
@@ -41,6 +44,7 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        
         
         <Route 
           path="/admin" 
