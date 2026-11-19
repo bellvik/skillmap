@@ -2,10 +2,13 @@ import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getProfessionById, getSkillsByProfession } from '../data/mockData';
 import SkillDetailModal from '../components/SkillDetailModal';
+import { useAuth } from '../context/AuthContext';
+import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const SkillMapPage = () => {
   const { id } = useParams();
-  
+  const { currentUser } = useAuth();
+  const { getSkillStatus, updateSkillStatus } = useSkillStatuses();
   // Состояния
   const [profession, setProfession] = useState(null);
   const [skills, setSkills] = useState([]);
@@ -13,7 +16,10 @@ const SkillMapPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  
 
+  
   // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
@@ -139,6 +145,10 @@ const SkillMapPage = () => {
           <span className="text-sm text-gray-700">Не начато</span>
         </div>
         <div className="flex items-center gap-2">
+          <span className="w-4 h-4 rounded-full bg-amber-400 border border-amber-500 flex items-center justify-center text-white text-[10px]">◐</span>
+          <span className="text-sm text-gray-700">В процессе</span>
+        </div>
+        <div className="flex items-center gap-2">
           <span className="w-4 h-4 rounded-full bg-green-500 border border-green-600 flex items-center justify-center text-white text-[10px]">✓</span>
           <span className="text-sm text-gray-700">Освоено</span>
         </div>
@@ -154,27 +164,33 @@ const SkillMapPage = () => {
             
             {groupedSkills[categoryName].map(skill => {
               // Проверка статуса (используем String() для надежности, как мы выяснили ранее)
-              const isMastered = mapData?.selectedSkillIds?.some(sid => String(sid) === String(skill.id));
+              const status = currentUser
+                ? getSkillStatus(currentUser.id, id, skill.id)
+                : (mapData?.selectedSkillIds?.some(sid => String(sid) === String(skill.id)) ? 'mastered' : 'not_started');
+              const isMastered = status === 'mastered';
+              const isInProgress = status === 'in_progress';
               
               // Получаем названия предпосылок для отображения связей текстом
               const prereqNames = skill.prerequisites
                 .map(pid => skills.find(s => String(s.id) === String(pid))?.name)
                 .filter(Boolean);
+              let cardClass = 'bg-white border-gray-200 hover:border-purple-300'; // по умолчанию
+              if (isMastered) cardClass = 'bg-green-50 border-green-300 shadow-sm';
+              if (isInProgress) cardClass = 'bg-amber-50 border-amber-300 shadow-sm';
 
               return (
-                <div 
-                  key={skill.id}
-                  className={`p-4 rounded-lg border transition-all ${
-                    isMastered 
-                      ? 'bg-green-50 border-green-300 shadow-sm' 
-                      : 'bg-white border-gray-200 hover:border-purple-300'
-                  }`}
-                >
+                <div key={skill.id} className={`p-4 rounded-lg border transition-all ${cardClass}`}>
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-gray-900">{skill.name}</h4>
+                    
+                    {/* 3. Бейдж статуса (теперь их 3 варианта) */}
                     {isMastered ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
                         <span>✓</span> Освоено
+                      </span>
+                    ) : isInProgress ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                        <span>◐</span> В процессе
                       </span>
                     ) : (
                       <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -187,14 +203,13 @@ const SkillMapPage = () => {
                     <p className="text-sm text-gray-600 mb-3">{skill.description}</p>
                   )}
                   
-                  {/* Отображение связей (предпосылок) текстом (FR-02, FR-05) */}
                   {prereqNames.length > 0 && (
                     <div className="text-xs text-gray-500 mb-2">
                       <span className="font-medium">Требует:</span> {prereqNames.join(', ')}
                     </div>
                   )}
 
-                  {/* Заготовка под UC-5 (Раскрытие навыка) */}
+                  {/* 4. Кнопка открытия модалки */}
                   <button
                     onClick={() => setSelectedSkill(skill)}
                     className="mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium w-full text-left"
@@ -208,12 +223,21 @@ const SkillMapPage = () => {
         ))}
       </div>
         {selectedSkill && (
-            <SkillDetailModal
-                skill={selectedSkill}
-                allSkills={skills}
-                isMastered={mapData?.selectedSkillIds?.some(sid => String(sid) === String(selectedSkill.id))}
-                onClose={() => setSelectedSkill(null)}
-            />
+          <SkillDetailModal
+            skill={selectedSkill}
+            allSkills={skills}
+            status={currentUser
+              ? getSkillStatus(currentUser.id, id, selectedSkill.id)
+              : (mapData?.selectedSkillIds?.some(sid => String(sid) === String(selectedSkill.id)) ? 'mastered' : 'not_started')}
+            userId={currentUser?.id || null}
+            onUpdateStatus={(newStatus) => {
+              if (currentUser) {
+                updateSkillStatus(currentUser.id, id, selectedSkill.id, newStatus);
+                setMapData(prev => ({ ...prev, _refresh: Date.now() }));
+              }
+            }}
+            onClose={() => setSelectedSkill(null)}
+          />
         )}
     </div>
   );

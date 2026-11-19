@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
+  const { currentUser } = useAuth();
   return (
     <div className="max-w-4xl mx-auto text-center">
       <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
@@ -11,19 +13,28 @@ const HomePage = () => {
         Платформа для построения и развития картины навыков профессионалов
       </p>
       
-      <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
-        <Link 
-          to="/professions" 
-          className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-lg hover:shadow-xl"
+      <div className="flex gap-4 justify-center">
+        <Link
+          to="/professions"
+          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
         >
           Выбрать профессию
         </Link>
-        <Link 
-          to="/login" 
-          className="px-8 py-3 bg-transparent border-2 border-purple-600 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-800 transition-colors"
-        >
-          Войти
-        </Link>
+        {currentUser ? (
+          <Link
+            to="/my-maps"
+            className="px-6 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+          >
+            Мои карты
+          </Link>
+        ) : (
+          <Link
+            to="/login"
+            className="px-6 py-3 border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+          >
+            Войти
+          </Link>
+        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">

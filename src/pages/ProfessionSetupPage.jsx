@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getProfessionById, getSkillsByProfession } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const LEVELS = [
   { value: 'beginner', label: 'Новичок' },
@@ -12,7 +14,8 @@ const LEVELS = [
 const ProfessionSetupPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const { currentUser } = useAuth();
+  const { saveUserMap } = useSkillStatuses();
   const [profession, setProfession] = useState(null);
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,16 +53,38 @@ const ProfessionSetupPage = () => {
   };
 
   const handleBuildMap = () => {
-    // Сохраняем выбор в localStorage (временное решение до бэкенда)
-    localStorage.setItem(
-      `skillmap_profession_${id}`,
-      JSON.stringify({
+    if (currentUser) {
+      // Формируем карту в формате, который ожидает useSkillStatuses:
+      // skills: [{ skillId, status }]
+      const skillsStatuses = skills.map(skill => ({
+        skillId: skill.id,
+        status: selectedSkillIds.some(sid => String(sid) === String(skill.id))
+          ? 'mastered'
+          : 'not_started',
+      }));
+
+      const mapData = {
         professionId: id,
         level: selectedLevel,
-        selectedSkillIds,
+        skills: skillsStatuses,
         updatedAt: new Date().toISOString(),
-      })
-    );
+      };
+
+      // saveUserMap сам решит — добавить новую карту или обновить существующую (FR-15)
+      saveUserMap(currentUser.id, mapData);
+    } else {
+      // Гость: старый формат (обратная совместимость)
+      localStorage.setItem(
+        `skillmap_profession_${id}`,
+        JSON.stringify({
+          professionId: id,
+          level: selectedLevel,
+          selectedSkillIds,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+    }
+
     navigate(`/professions/${id}/map`);
   };
 

@@ -2,30 +2,35 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getResourcesByIds, getCategoryName } from '../data/mockData';
 
-const SkillDetailModal = ({ skill, allSkills, isMastered, onClose }) => {
-  // Закрытие по Esc (NFR-03: интуитивность)
+const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, onClose }) => {
   useEffect(() => {
     const handleEsc = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Резолв предпосылок в названия (FR-05: показать предпосылки, если заполнены)
   const prereqNames = (skill.prerequisites || [])
     .map(pid => allSkills.find(s => String(s.id) === String(pid))?.name)
     .filter(Boolean);
 
-  // Ресурсы навыка (FR-06)
   const resources = getResourcesByIds(skill.resourceIds);
+
+  const STATUS_OPTIONS = [
+    { value: 'not_started', label: 'Не начато', icon: '○', activeClass: 'bg-gray-600 text-white border-gray-600' },
+    { value: 'in_progress', label: 'В процессе', icon: '◐', activeClass: 'bg-amber-500 text-white border-amber-500' },
+    { value: 'mastered', label: 'Освоено', icon: '✓', activeClass: 'bg-green-600 text-white border-green-600' },
+  ];
+
+  const currentStatus = status || 'not_started';
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-      onClick={onClose} // клик по фону закрывает
+      onClick={onClose}
     >
       <div
         className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()} // клик внутри не закрывает
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Шапка */}
         <div className="flex justify-between items-start mb-4">
@@ -42,20 +47,25 @@ const SkillDetailModal = ({ skill, allSkills, isMastered, onClose }) => {
           </button>
         </div>
 
-        {/* Статус навыка (NFR-06: не только цвет, но и текст) */}
+        {/* Бейдж текущего статуса (NFR-06) */}
         <div className="mb-4">
-          {isMastered ? (
+          {currentStatus === 'mastered' && (
             <span className="inline-flex items-center gap-1 text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded">
               <span>✓</span> Освоено
             </span>
-          ) : (
+          )}
+          {currentStatus === 'in_progress' && (
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-amber-700 bg-amber-100 px-3 py-1 rounded">
+              <span>◐</span> В процессе
+            </span>
+          )}
+          {currentStatus === 'not_started' && (
             <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-600 bg-gray-100 px-3 py-1 rounded">
               <span>○</span> Не начато
             </span>
           )}
         </div>
 
-        {/* Описание (FR-05 / RULE-02: блок скрыт, если поля нет, а не "undefined") */}
         {skill.description && (
           <div className="mb-4">
             <h3 className="font-semibold text-gray-800 mb-1">Описание</h3>
@@ -63,7 +73,6 @@ const SkillDetailModal = ({ skill, allSkills, isMastered, onClose }) => {
           </div>
         )}
 
-        {/* Предпосылки (FR-05) */}
         {prereqNames.length > 0 && (
           <div className="mb-4">
             <h3 className="font-semibold text-gray-800 mb-1">Предпосылки</h3>
@@ -71,7 +80,6 @@ const SkillDetailModal = ({ skill, allSkills, isMastered, onClose }) => {
           </div>
         )}
 
-        {/* Ресурсы (FR-06 / альтернатива UC-5.1) */}
         <div className="mb-6">
           <h3 className="font-semibold text-gray-800 mb-2">Учебные ресурсы</h3>
           {resources.length === 0 ? (
@@ -101,25 +109,49 @@ const SkillDetailModal = ({ skill, allSkills, isMastered, onClose }) => {
           )}
         </div>
 
-        {/* Действия гостя: RULE-01 + альтернатива UC-5.2 — предлагаем войти */}
+        {/* ЕДИНСТВЕННЫЙ блок действий: авторизованный видит кнопки, гость — вход */}
         <div className="border-t border-gray-200 pt-4">
-          <p className="text-sm text-gray-600 mb-3">
-            Чтобы изменить статус навыка или добавить его в план обучения, войдите в аккаунт.
-          </p>
-          <div className="flex gap-3">
-            <Link
-              to="/login"
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
-            >
-              Войти
-            </Link>
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-            >
-              Закрыть
-            </button>
-          </div>
+          {userId ? (
+            <div>
+              <p className="text-sm text-gray-700 mb-3 font-medium">Статус навыка:</p>
+              <div className="flex flex-wrap gap-2">
+                {STATUS_OPTIONS.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => onUpdateStatus(opt.value)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                      currentStatus === opt.value
+                        ? opt.activeClass
+                        : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                    }`}
+                  >
+                    {opt.icon} {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm text-gray-600 mb-3">
+                Чтобы изменить статус навыка или добавить его в план обучения, войдите в аккаунт.
+              </p>
+              <div className="flex gap-3">
+                <Link
+                  to="/login"
+                  state={{ from: `/professions/${skill.professionId || ''}/map` }}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+                >
+                  Войти
+                </Link>
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
