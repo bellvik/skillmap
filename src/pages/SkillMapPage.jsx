@@ -7,8 +7,7 @@ import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const SkillMapPage = () => {
   const { id } = useParams();
-  const { currentUser } = useAuth();
-  const { getSkillStatus, updateSkillStatus } = useSkillStatuses();
+  
   // Состояния
   const [profession, setProfession] = useState(null);
   const [skills, setSkills] = useState([]);
@@ -16,21 +15,42 @@ const SkillMapPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [userSkillStatuses, setUserSkillStatuses] = useState({});
   
+  // Получаем данные пользователя и хук статусов
+  const { currentUser } = useAuth();
+  const { getUserMaps, saveUserMap } = useSkillStatuses();
 
-  
   // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. Читаем настройки пользователя из localStorage
-        const saved = localStorage.getItem(`skillmap_profession_${id}`);
-        if (saved) {
-          setMapData(JSON.parse(saved));
+        // 1. Для авторизованного пользователя: читаем из нового хранилища
+        if (currentUser) {
+          const userMaps = getUserMaps(currentUser.id);
+          const userMap = userMaps.find(map => String(map.professionId) === String(id));
+          
+          if (userMap) {
+            setMapData(userMap);
+            // Сохраняем статусы для всех навыков в объект для быстрого доступа
+            const statuses = {};
+            userMap.skills.forEach(skill => {
+              statuses[String(skill.skillId)] = skill.status;
+            });
+            setUserSkillStatuses(statuses);
+          } else {
+            // Карта для этой профессии еще не создавалась пользователем
+            setMapData({ professionId: id, skills: [] });
+          }
+        } else {
+          // 2. Для гостей: читаем из старого хранилища (обратная совместимость)
+          const saved = localStorage.getItem(`skillmap_profession_${id}`);
+          if (saved) {
+            setMapData(JSON.parse(saved));
+          }
         }
 
-        // 2. Загружаем данные профессии и навыков
+        // 3. Загружаем метаданные профессии и навыков
         const prof = getProfessionById(id);
         if (!prof) {
           setError('Профессия не найдена или была архивирована.');
@@ -39,8 +59,7 @@ const SkillMapPage = () => {
         }
         
         setProfession(prof);
-        const profSkills = getSkillsByProfession(id);
-        setSkills(profSkills);
+        setSkills(getSkillsByProfession(id));
         setLoading(false);
       } catch (err) {
         console.error('Ошибка загрузки данных карты:', err);
@@ -50,11 +69,10 @@ const SkillMapPage = () => {
     };
 
     loadData();
-  }, [id]);
+  }, [id, currentUser]);
 
   // Вспомогательная функция: получить имя категории по ID
   const getCategoryName = (categoryId) => {
-    // Для упрощения берем названия из mockData (в реальном проекте можно импортировать getCategories)
     const categories = [
       { id: 1, name: 'Frontend' },
       { id: 2, name: 'Version Control' },
@@ -71,7 +89,6 @@ const SkillMapPage = () => {
     if (!acc[catName]) acc[catName] = [];
     acc[catName].push(skill);
     return acc;
-    // Сортировка внутри категории по полю order
   }, {});
 
   Object.keys(groupedSkills).forEach(key => {
@@ -89,7 +106,6 @@ const SkillMapPage = () => {
               <div key={i} className="space-y-3">
                 <div className="h-6 bg-gray-200 rounded w-1/2"></div>
                 <div className="h-24 bg-gray-200 rounded"></div>
-                <div className="h-24 bg-gray-200 rounded"></div>
               </div>
             ))}
           </div>
@@ -102,55 +118,84 @@ const SkillMapPage = () => {
   if (error || !profession) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">{error || 'Карта недоступна'}</h2>
-        <Link
-          to="/professions"
-          className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-        >
-          ← Вернуться к списку профессий
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">{error || 'Профессия не найдена'}</h2>
+        <p className="text-gray-600 mb-6">Возможно, она была архивирована или удалена.</p>
+        <Link to="/professions" className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+          Вернуться к списку профессий
         </Link>
       </div>
     );
   }
 
-  // --- UI: Основная отрисовка карты (UC-4, FR-02) ---
+  // Функция для получения статуса навыка (оптимизированная)
+  const getSkillStatusForSkill = (skillId) => {
+    const strSkillId = String(skillId);
+    if (currentUser) {
+      return userSkillStatuses[strSkillId] || 'not_started';
+    } else {
+      return mapData?.selectedSkillIds?.some(sid => String(sid) === strSkillId) 
+        ? 'mastered' 
+        : 'not_started';
+    }
+  };
+
+  // Обновление статуса навыка (UC-7, UC-8, FR-11)
+  const handleUpdateSkillStatus = (skillId, newStatus) => {
+    if (!currentUser) return;
+    
+    const strSkillId = String(skillId);
+    const updatedMap = { 
+      professionId: String(id), 
+      professionName: profession.name,
+      level: mapData?.level || '',
+      skills: [...(mapData?.skills || [])],
+      updatedAt: new Date().toISOString()
+    };
+    
+    const existingIndex = updatedMap.skills.findIndex(s => String(s.skillId) === strSkillId);
+    
+    if (existingIndex >= 0) {
+      updatedMap.skills[existingIndex].status = newStatus;
+    } else {
+      updatedMap.skills.push({ skillId: strSkillId, status: newStatus });
+    }
+    
+    // Сохраняем в хранилище (FR-15: обновит существующую, не создаст дубликат)
+    saveUserMap(currentUser.id, updatedMap);
+    
+    // Мгновенно обновляем локальный стейт для реактивного UI
+    setUserSkillStatuses(prev => ({
+      ...prev,
+      [strSkillId]: newStatus
+    }));
+    setMapData(updatedMap);
+    setSelectedSkill(null); // Закрываем модалку
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Заголовок и навигация */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
-        <div>
-          <Link to="/professions" className="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
-            ← К списку профессий
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">{profession.name}</h1>
-          {mapData && (
-            <p className="text-gray-600 mt-1">
-              Выбранный уровень: <span className="font-semibold capitalize">{mapData.level}</span>
-            </p>
-          )}
-        </div>
-        <Link
-          to={`/professions/${id}/setup`}
-          className="px-5 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center"
-        >
-          ⚙️ Изменить настройки
+      <div className="mb-8">
+        <Link to="/professions" className="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
+          ← К списку профессий
         </Link>
-      </div>
-
-      {/* Легенда (NFR-06: статусы различимы не только по цвету, но и по тексту/иконке) */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 flex flex-wrap gap-6">
-        <span className="font-semibold text-gray-700 mr-2">Легенда:</span>
-        <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded-full bg-gray-300 border border-gray-400"></span>
-          <span className="text-sm text-gray-700">Не начато</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded-full bg-amber-400 border border-amber-500 flex items-center justify-center text-white text-[10px]">◐</span>
-          <span className="text-sm text-gray-700">В процессе</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-4 h-4 rounded-full bg-green-500 border border-green-600 flex items-center justify-center text-white text-[10px]">✓</span>
-          <span className="text-sm text-gray-700">Освоено</span>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{profession.name}</h1>
+        <p className="text-gray-600 mb-4">{profession.description}</p>
+        
+        {/* Легенда статусов (NFR-06: различимы по цвету, тексту и иконке) */}
+        <div className="flex flex-wrap items-center gap-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <span className="font-semibold text-gray-700 mr-2">Легенда:</span>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center text-gray-700 text-[10px]">○</span>
+            <span className="text-sm text-gray-700">Не начато</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-yellow-200 border border-yellow-300 flex items-center justify-center text-yellow-800 text-[10px]">◐</span>
+            <span className="text-sm text-gray-700">В процессе</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 rounded-full bg-green-500 border border-green-600 flex items-center justify-center text-white text-[10px]">✓</span>
+            <span className="text-sm text-gray-700">Освоено</span>
+          </div>
         </div>
       </div>
 
@@ -163,33 +208,25 @@ const SkillMapPage = () => {
             </h3>
             
             {groupedSkills[categoryName].map(skill => {
-              // Проверка статуса (используем String() для надежности, как мы выяснили ранее)
-              const status = currentUser
-                ? getSkillStatus(currentUser.id, id, skill.id)
-                : (mapData?.selectedSkillIds?.some(sid => String(sid) === String(skill.id)) ? 'mastered' : 'not_started');
-              const isMastered = status === 'mastered';
-              const isInProgress = status === 'in_progress';
-              
-              // Получаем названия предпосылок для отображения связей текстом
+              const skillStatus = getSkillStatusForSkill(skill.id);
               const prereqNames = skill.prerequisites
                 .map(pid => skills.find(s => String(s.id) === String(pid))?.name)
                 .filter(Boolean);
-              let cardClass = 'bg-white border-gray-200 hover:border-purple-300'; // по умолчанию
-              if (isMastered) cardClass = 'bg-green-50 border-green-300 shadow-sm';
-              if (isInProgress) cardClass = 'bg-amber-50 border-amber-300 shadow-sm';
+
+              let cardClass = 'bg-white border-gray-200 hover:border-purple-300';
+              if (skillStatus === 'mastered') cardClass = 'bg-green-50 border-green-300 shadow-sm';
+              if (skillStatus === 'in_progress') cardClass = 'bg-yellow-50 border-yellow-300 shadow-sm';
 
               return (
                 <div key={skill.id} className={`p-4 rounded-lg border transition-all ${cardClass}`}>
                   <div className="flex justify-between items-start mb-2">
                     <h4 className="font-semibold text-gray-900">{skill.name}</h4>
-                    
-                    {/* 3. Бейдж статуса (теперь их 3 варианта) */}
-                    {isMastered ? (
+                    {skillStatus === 'mastered' ? (
                       <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded">
                         <span>✓</span> Освоено
                       </span>
-                    ) : isInProgress ? (
-                      <span className="flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                    ) : skillStatus === 'in_progress' ? (
+                      <span className="flex items-center gap-1 text-xs font-medium text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
                         <span>◐</span> В процессе
                       </span>
                     ) : (
@@ -199,17 +236,14 @@ const SkillMapPage = () => {
                     )}
                   </div>
                   
-                  {skill.description && (
-                    <p className="text-sm text-gray-600 mb-3">{skill.description}</p>
-                  )}
+                  {skill.description && <p className="text-sm text-gray-600 mb-3">{skill.description}</p>}
                   
                   {prereqNames.length > 0 && (
                     <div className="text-xs text-gray-500 mb-2">
                       <span className="font-medium">Требует:</span> {prereqNames.join(', ')}
                     </div>
                   )}
-
-                  {/* 4. Кнопка открытия модалки */}
+                  
                   <button
                     onClick={() => setSelectedSkill(skill)}
                     className="mt-2 text-sm text-purple-600 hover:text-purple-800 font-medium w-full text-left"
@@ -222,23 +256,17 @@ const SkillMapPage = () => {
           </div>
         ))}
       </div>
-        {selectedSkill && (
-          <SkillDetailModal
-            skill={selectedSkill}
-            allSkills={skills}
-            status={currentUser
-              ? getSkillStatus(currentUser.id, id, selectedSkill.id)
-              : (mapData?.selectedSkillIds?.some(sid => String(sid) === String(selectedSkill.id)) ? 'mastered' : 'not_started')}
-            userId={currentUser?.id || null}
-            onUpdateStatus={(newStatus) => {
-              if (currentUser) {
-                updateSkillStatus(currentUser.id, id, selectedSkill.id, newStatus);
-                setMapData(prev => ({ ...prev, _refresh: Date.now() }));
-              }
-            }}
-            onClose={() => setSelectedSkill(null)}
-          />
-        )}
+
+      {selectedSkill && (
+        <SkillDetailModal
+          skill={selectedSkill}
+          allSkills={skills}
+          status={getSkillStatusForSkill(selectedSkill.id)} // ✅ Исправлено: передаем status вместо isMastered
+          userId={currentUser?.id || null}
+          onUpdateStatus={handleUpdateSkillStatus}
+          onClose={() => setSelectedSkill(null)}
+        />
+      )}
     </div>
   );
 };

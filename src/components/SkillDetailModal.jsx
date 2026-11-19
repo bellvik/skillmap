@@ -118,7 +118,7 @@ const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, on
                 {STATUS_OPTIONS.map(opt => (
                   <button
                     key={opt.value}
-                    onClick={() => onUpdateStatus(opt.value)}
+                    onClick={() => onUpdateStatus(skill.id, opt.value)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
                       currentStatus === opt.value
                         ? opt.activeClass
