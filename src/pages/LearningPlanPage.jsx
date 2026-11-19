@@ -214,7 +214,7 @@ const LearningPlanPage = () => {
           
           return (
             <div key={step.id} className="flex items-start gap-4 p-4 bg-white rounded-lg shadow border border-gray-100">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center font-bold">
+              <div className="shrink-0 w-8 h-8 rounded-full bg-purple-100 text-purple-800 flex items-center justify-center font-bold">
                 {index + 1}
               </div>
               <div className="flex-1">
