@@ -175,9 +175,24 @@ const SkillMapPage = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <Link to="/professions" className="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
-          ← К списку профессий
-        </Link>
+        <div className="flex flex-wrap gap-3 mb-4">
+          <Link 
+            to="/professions" 
+            className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-medium"
+          >
+            ← К списку профессий
+          </Link>
+          
+          {/* Показываем только авторизованным */}
+          {currentUser && (
+            <Link 
+              to="/my-maps" 
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-800 font-medium border-l border-gray-300 pl-3"
+            >
+              ← В Мои карты
+            </Link>
+          )}
+        </div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">{profession.name}</h1>
         <p className="text-gray-600 mb-4">{profession.description}</p>
         
