@@ -2,6 +2,25 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer base {
+  a[href],
+  button:not(:disabled),
+  [role="button"],
+  label,
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  select:enabled,
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
 :root {
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   font-synthesis: none;

@@ -25,11 +25,11 @@ const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, on
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 cursor-pointer"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6"
+        className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-6 cursor-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Шапка */}
