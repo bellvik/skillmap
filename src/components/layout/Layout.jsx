@@ -13,7 +13,7 @@ const Layout = ({ children }) => {
             <Link to="/" className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               SkillMap
             </Link>
-            <nav className="hidden md:flex space-x-8">
+            <nav className="flex items-center gap-2 text-xs sm:gap-4 sm:text-sm md:gap-8">
               <Link to="/" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
                 Главная
               </Link>
@@ -54,7 +54,7 @@ const Layout = ({ children }) => {
               )}
               
               {/* Иконка LinkedIn */}
-              <a href="#" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
+              <a href="#" className="hidden text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors sm:inline-flex">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
                   <rect width="4" height="12" x="2" y="9" />
@@ -63,7 +63,7 @@ const Layout = ({ children }) => {
               </a>
               
               {/* Иконка Twitter / X */}
-              <a href="#" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
+              <a href="#" className="hidden text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors sm:inline-flex">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
                 </svg>
