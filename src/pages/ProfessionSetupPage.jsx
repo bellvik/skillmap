@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getProfessionById, getSkillsByProfession } from '../data/mockData';
-import { useAuth } from '../context/AuthContext';
+import { api, getApiError } from '../api/client';
+import { useAuth } from '../context/useAuth';
 import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const LEVELS = [
@@ -20,24 +20,23 @@ const ProfessionSetupPage = () => {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const [selectedLevel, setSelectedLevel] = useState('beginner');
   const [selectedSkillIds, setSelectedSkillIds] = useState([]);
 
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       try {
-        const prof = getProfessionById(id);
-        if (!prof) {
-          setError('Профессия не найдена');
-          setLoading(false);
-          return;
-        }
-        setProfession(prof);
-        setSkills(getSkillsByProfession(id) || []);
-        setLoading(false);
-      } catch (e) {
-        setError('Не удалось загрузить данные');
+        const [professionResponse, skillsResponse] = await Promise.all([
+          api.get(`/professions/${id}`),
+          api.get(`/professions/${id}/skills`),
+        ]);
+        setProfession(professionResponse.data);
+        setSkills(skillsResponse.data);
+      } catch (err) {
+        setError(getApiError(err, 'Не удалось загрузить данные'));
+      } finally {
         setLoading(false);
       }
     };
@@ -52,40 +51,41 @@ const ProfessionSetupPage = () => {
     );
   };
 
-  const handleBuildMap = () => {
-    if (currentUser) {
-      // Формируем карту в формате, который ожидает useSkillStatuses:
-      // skills: [{ skillId, status }]
-      const skillsStatuses = skills.map(skill => ({
-        skillId: skill.id,
-        status: selectedSkillIds.some(sid => String(sid) === String(skill.id))
-          ? 'mastered'
-          : 'not_started',
-      }));
+  const handleBuildMap = async () => {
+    setError('');
+    setSaving(true);
+    try {
+      if (currentUser) {
+        const skillsStatuses = skills.map(skill => ({
+          skillId: skill.id,
+          status: selectedSkillIds.some(sid => String(sid) === String(skill.id))
+            ? 'mastered'
+            : 'not_started',
+        }));
 
-      const mapData = {
-        professionId: id,
-        level: selectedLevel,
-        skills: skillsStatuses,
-        updatedAt: new Date().toISOString(),
-      };
-
-      // saveUserMap сам решит — добавить новую карту или обновить существующую (FR-15)
-      saveUserMap(currentUser.id, mapData);
-    } else {
-      // Гость: старый формат (обратная совместимость)
-      localStorage.setItem(
-        `skillmap_profession_${id}`,
-        JSON.stringify({
+        await saveUserMap({
           professionId: id,
           level: selectedLevel,
-          selectedSkillIds,
-          updatedAt: new Date().toISOString(),
-        })
-      );
-    }
+          skills: skillsStatuses,
+        });
+      } else {
+        localStorage.setItem(
+          `skillmap_profession_${id}`,
+          JSON.stringify({
+            professionId: id,
+            level: selectedLevel,
+            selectedSkillIds,
+            updatedAt: new Date().toISOString(),
+          })
+        );
+      }
 
-    navigate(`/professions/${id}/map`);
+      navigate(`/professions/${id}/map`);
+    } catch (err) {
+      setError(getApiError(err, 'Не удалось сохранить карту. Попробуйте ещё раз.'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Состояние загрузки (скелетон по RULE-03)
@@ -203,9 +203,10 @@ const ProfessionSetupPage = () => {
       <div className="flex gap-4">
         <button
           onClick={handleBuildMap}
-          className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+          disabled={saving}
+          className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
         >
-          Построить карту
+          {saving ? 'Сохраняем...' : 'Построить карту'}
         </button>
         <button
           onClick={() => navigate('/professions')}

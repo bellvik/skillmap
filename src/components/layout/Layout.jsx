@@ -1,8 +1,20 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
+import { useState } from 'react';
+import { getApiError } from '../../api/client';
 
 const Layout = ({ children }) => {
   const { currentUser, logout } = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setLogoutError('');
+    } catch (error) {
+      setLogoutError(getApiError(error.cause, error.message));
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -35,7 +47,7 @@ const Layout = ({ children }) => {
                   </span>
                   {/* Кнопка выхода */}
                   <button
-                    onClick={logout}
+                    onClick={handleLogout}
                     className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors"
                   >
                     Выйти
@@ -70,6 +82,11 @@ const Layout = ({ children }) => {
               </a>
             </div>
           </div>
+          {logoutError && (
+            <p role="alert" className="mt-3 text-right text-sm text-red-600">
+              {logoutError}
+            </p>
+          )}
         </div>
       </header>
 

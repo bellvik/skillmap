@@ -1,105 +1,73 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { api, getApiError } from '../api/client';
+import { AuthContext } from './authContext';
 
-// Создаем контекст
-const AuthContext = createContext();
-
-// Провайдер контекста
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState('');
 
-  // Инициализация из localStorage при загрузке приложения
   useEffect(() => {
-    const savedUser = localStorage.getItem('skillmap_current_user');
-    const users = localStorage.getItem('skillmap_users');
-
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
-
-    setLoading(false);
+    api.get('/auth/me')
+      .then(({ data }) => setCurrentUser(data.user))
+      .catch((error) => {
+        console.error('Не удалось проверить сессию пользователя:', error);
+        setConnectionError(getApiError(error, 'Не удалось подключиться к серверу. Проверьте, запущен ли backend.'));
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  // Регистрация нового пользователя
-  const register = (email, password, name) => {
-    // Проверяем, существует ли пользователь с таким email
-    const existingUsers = localStorage.getItem('skillmap_users');
-    let users = existingUsers ? JSON.parse(existingUsers) : [];
-
-    if (users.find(user => user.email === email)) {
-      throw new Error('Пользователь с таким email уже существует');
+  const register = async (email, password, name) => {
+    try {
+      const { data } = await api.post('/auth/register', { email, password, name });
+      setCurrentUser(data.user);
+      setConnectionError('');
+      return data.user;
+    } catch (error) {
+      throw new Error(getApiError(error, 'Не удалось зарегистрироваться. Попробуйте ещё раз.'), { cause: error });
     }
-
-    // Создаем нового пользователя
-    const newUser = {
-      id: Date.now().toString(), // Простой способ генерации уникального ID
-      email,
-      password, // TODO: заменить на API и хеширование
-      name
-    };
-
-    // Добавляем пользователя в список
-    users.push(newUser);
-    localStorage.setItem('skillmap_users', JSON.stringify(users));
-
-    // Авторизуем его сразу
-    localStorage.setItem('skillmap_current_user', JSON.stringify(newUser));
-    setCurrentUser(newUser);
-
-    return newUser;
   };
 
-  // Вход пользователя
-  const login = (email, password) => {
-    const users = localStorage.getItem('skillmap_users');
-    
-    if (!users) {
-      throw new Error('Пользователи не найдены');
+  const login = async (email, password) => {
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      setCurrentUser(data.user);
+      setConnectionError('');
+      return data.user;
+    } catch (error) {
+      throw new Error(getApiError(error, 'Не удалось войти. Попробуйте ещё раз.'), { cause: error });
     }
-
-    const parsedUsers = JSON.parse(users);
-    const user = parsedUsers.find(u => u.email === email && u.password === password);
-
-    if (!user) {
-      throw new Error('Неверный email или пароль');
-    }
-
-    // Сохраняем пользователя в localStorage
-    localStorage.setItem('skillmap_current_user', JSON.stringify(user));
-    setCurrentUser(user);
-
-    return user;
   };
 
-  // Выход пользователя
-  const logout = () => {
-    localStorage.removeItem('skillmap_current_user');
-    setCurrentUser(null);
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout');
+      setCurrentUser(null);
+    } catch (error) {
+      throw new Error(getApiError(error, 'Не удалось выйти из аккаунта. Попробуйте ещё раз.'), { cause: error });
+    }
   };
 
-  // Значение, которое будет предоставляться контекстом
   const value = {
     currentUser,
     login,
     register,
     logout,
-    loading
+    loading,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading && (
+        <>
+          {connectionError && (
+            <div role="alert" className="fixed bottom-4 right-4 z-50 max-w-md rounded-lg bg-red-100 p-4 text-sm text-red-800 shadow-lg">
+              {connectionError}
+            </div>
+          )}
+          {children}
+        </>
+      )}
     </AuthContext.Provider>
   );
-};
-
-// Хук для использования контекста
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  
-  return context;
 };

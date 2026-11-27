@@ -1,42 +1,45 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getProfessionById, getSkillsByProfession, getResourcesByIds } from '../data/mockData';
-import { useAuth } from '../context/AuthContext';
+import { api, getApiError } from '../api/client';
+import { useAuth } from '../context/useAuth';
 import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const LearningPlanPage = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
-  const { getSkillStatus, updateSkillStatus } = useSkillStatuses();
+  const { getUserMaps, updateSkillStatus } = useSkillStatuses();
   
   const [profession, setProfession] = useState(null);
   const [learningSteps, setLearningSteps] = useState([]);
   const [stepStatuses, setStepStatuses] = useState({}); // Локальный стейт для мгновенного обновления UI
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       try {
-        const prof = getProfessionById(id);
-        if (!prof) {
-          setError('Профессия не найдена или была архивирована.');
-          setLoading(false);
-          return;
-        }
+        const [professionResponse, skillsResponse, userMaps] = await Promise.all([
+          api.get(`/professions/${id}`),
+          api.get(`/professions/${id}/skills`),
+          currentUser ? getUserMaps() : Promise.resolve([]),
+        ]);
+        const prof = professionResponse.data;
         setProfession(prof);
 
-        const skills = getSkillsByProfession(id);
+        const skills = skillsResponse.data;
+        const userMap = userMaps.find(map => String(map.professionId) === String(id));
+        const statuses = Object.fromEntries(
+          (userMap?.skills || []).map(skill => [String(skill.skillId), skill.status])
+        );
         
         // Определяем пробелы
         let gaps = [];
         const initialStatuses = {};
         
         skills.forEach(skill => {
-          const status = currentUser 
-            ? getSkillStatus(currentUser.id, id, skill.id) 
-            : 'not_started';
+          const status = currentUser ? statuses[String(skill.id)] || 'not_started' : 'not_started';
             
           if (status !== 'mastered') {
             gaps.push(skill);
@@ -58,34 +61,26 @@ const LearningPlanPage = () => {
         setLoading(false);
       } catch (err) {
         console.error('Ошибка загрузки данных плана обучения:', err);
-        setError('Не удалось загрузить план обучения. Попробуйте обновить страницу.');
+        setError(getApiError(err, 'Не удалось загрузить план обучения. Попробуйте обновить страницу.'));
         setLoading(false);
       }
     };
 
     loadData();
-  }, [id, currentUser, getSkillStatus]);
+  }, [id, currentUser, getUserMaps]);
 
-  // ✅ ИСПРАВЛЕНИЕ 1: Добавлена недостающая функция обновления статуса
-  const handleUpdateSkillStatus = (skillId, newStatus) => {
+  const handleUpdateSkillStatus = async (skillId, newStatus) => {
     if (!currentUser) return;
-    
-    // 1. Сохраняем в хранилище через хук
-    updateSkillStatus(currentUser.id, id, skillId, newStatus);
-    
-    // 2. Мгновенно обновляем локальный стейт для реактивного UI (без перезагрузки)
-    setStepStatuses(prev => ({
-      ...prev,
-      [skillId]: newStatus
-    }));
+    try {
+      await updateSkillStatus(id, skillId, newStatus);
+      setStepStatuses(prev => ({ ...prev, [skillId]: newStatus }));
+      setSaveError('');
+    } catch (err) {
+      setSaveError(getApiError(err, 'Не удалось сохранить статус навыка.'));
+    }
   };
 
-  // ✅ ИСПРАВЛЕНИЕ 2: Функция возвращает весь объект ресурса, а не только URL
-  const getResource = (resourceIds) => {
-    if (!resourceIds || resourceIds.length === 0) return null;
-    const resources = getResourcesByIds(resourceIds);
-    return resources.length > 0 ? resources[0] : null;
-  };
+  const getResource = (skill) => skill.resources?.[0] || null;
 
   // Расчёт прогресса на основе локального стейта (быстро, без чтения localStorage)
   const masteredCount = Object.values(stepStatuses).filter(s => s === 'mastered').length;
@@ -180,6 +175,11 @@ const LearningPlanPage = () => {
 
       <h1 className="text-3xl font-bold text-gray-900 mb-2">План обучения: {profession.name}</h1>
       <p className="text-gray-600 mb-6">{profession.description}</p>
+      {saveError && (
+        <div role="alert" className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
 
       {/* Прогресс-бар (ШАГ 1) */}
       <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -202,7 +202,7 @@ const LearningPlanPage = () => {
         {learningSteps.map((step, index) => {
           const status = stepStatuses[step.id] || 'not_started';
           const config = getStatusConfig(status);
-          const resource = getResource(step.resourceIds);
+          const resource = getResource(step);
           
           return (
             <div key={step.id} className="flex items-start gap-4 p-5 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-purple-200 transition-colors">

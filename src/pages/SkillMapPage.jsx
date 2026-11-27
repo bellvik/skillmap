@@ -1,8 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { getProfessionById, getSkillsByProfession } from '../data/mockData';
+import { api, getApiError } from '../api/client';
 import SkillDetailModal from '../components/SkillDetailModal';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useSkillStatuses } from '../hooks/useSkillStatuses';
 
 const SkillMapPage = () => {
@@ -14,78 +14,54 @@ const SkillMapPage = () => {
   const [mapData, setMapData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [saveError, setSaveError] = useState('');
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [userSkillStatuses, setUserSkillStatuses] = useState({});
   
   // Получаем данные пользователя и хук статусов
   const { currentUser } = useAuth();
-  const { getUserMaps, saveUserMap } = useSkillStatuses();
+  const { getUserMaps, updateSkillStatus } = useSkillStatuses();
 
   // Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. Для авторизованного пользователя: читаем из нового хранилища
-        if (currentUser) {
-          const userMaps = getUserMaps(currentUser.id);
-          const userMap = userMaps.find(map => String(map.professionId) === String(id));
-          
-          if (userMap) {
-            setMapData(userMap);
-            // Сохраняем статусы для всех навыков в объект для быстрого доступа
-            const statuses = {};
-            userMap.skills.forEach(skill => {
-              statuses[String(skill.skillId)] = skill.status;
-            });
-            setUserSkillStatuses(statuses);
-          } else {
-            // Карта для этой профессии еще не создавалась пользователем
-            setMapData({ professionId: id, skills: [] });
-          }
-        } else {
-          // 2. Для гостей: читаем из старого хранилища (обратная совместимость)
-          const saved = localStorage.getItem(`skillmap_profession_${id}`);
-          if (saved) {
-            setMapData(JSON.parse(saved));
-          }
-        }
+        const [professionResponse, skillsResponse, userMaps] = await Promise.all([
+          api.get(`/professions/${id}`),
+          api.get(`/professions/${id}/skills`),
+          currentUser ? getUserMaps() : Promise.resolve([]),
+        ]);
+        const prof = professionResponse.data;
+        const professionSkills = skillsResponse.data;
 
-        // 3. Загружаем метаданные профессии и навыков
-        const prof = getProfessionById(id);
-        if (!prof) {
-          setError('Профессия не найдена или была архивирована.');
-          setLoading(false);
-          return;
-        }
-        
         setProfession(prof);
-        setSkills(getSkillsByProfession(id));
-        setLoading(false);
+        setSkills(professionSkills);
+
+        if (currentUser) {
+          const userMap = userMaps.find(map => String(map.professionId) === String(id));
+          setMapData(userMap || { professionId: id, skills: [] });
+          setUserSkillStatuses(Object.fromEntries(
+            (userMap?.skills || []).map(skill => [String(skill.skillId), skill.status])
+          ));
+        } else {
+          const saved = localStorage.getItem(`skillmap_profession_${id}`);
+          setMapData(saved ? JSON.parse(saved) : null);
+          setUserSkillStatuses({});
+        }
       } catch (err) {
         console.error('Ошибка загрузки данных карты:', err);
-        setError('Не удалось загрузить карту навыков. Попробуйте обновить страницу.');
+        setError(getApiError(err, 'Не удалось загрузить карту навыков. Попробуйте обновить страницу.'));
+      } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [id, currentUser]);
-
-  // Вспомогательная функция: получить имя категории по ID
-  const getCategoryName = (categoryId) => {
-    const categories = [
-      { id: 1, name: 'Frontend' },
-      { id: 2, name: 'Version Control' },
-      { id: 3, name: 'Data Science' },
-      { id: 4, name: 'DevOps' }
-    ];
-    const cat = categories.find(c => String(c.id) === String(categoryId));
-    return cat ? cat.name : 'Общее';
-  };
+  }, [id, currentUser, getUserMaps]);
 
   // Группировка навыков по категориям
   const groupedSkills = skills.reduce((acc, skill) => {
-    const catName = getCategoryName(skill.categoryId);
+    const catName = skill.categoryName || 'Общее';
     if (!acc[catName]) acc[catName] = [];
     acc[catName].push(skill);
     return acc;
@@ -140,36 +116,27 @@ const SkillMapPage = () => {
   };
 
   // Обновление статуса навыка (UC-7, UC-8, FR-11)
-  const handleUpdateSkillStatus = (skillId, newStatus) => {
+  const handleUpdateSkillStatus = async (skillId, newStatus) => {
     if (!currentUser) return;
-    
-    const strSkillId = String(skillId);
-    const updatedMap = { 
-      professionId: String(id), 
-      professionName: profession.name,
-      level: mapData?.level || '',
-      skills: [...(mapData?.skills || [])],
-      updatedAt: new Date().toISOString()
-    };
-    
-    const existingIndex = updatedMap.skills.findIndex(s => String(s.skillId) === strSkillId);
-    
-    if (existingIndex >= 0) {
-      updatedMap.skills[existingIndex].status = newStatus;
-    } else {
-      updatedMap.skills.push({ skillId: strSkillId, status: newStatus });
+    try {
+      await updateSkillStatus(id, skillId, newStatus);
+      const strSkillId = String(skillId);
+      setUserSkillStatuses(prev => ({ ...prev, [strSkillId]: newStatus }));
+      setMapData(prev => ({
+        ...prev,
+        professionId: id,
+        professionName: profession.name,
+        skills: [
+          ...(prev?.skills || []).filter(skill => String(skill.skillId) !== strSkillId),
+          { skillId: strSkillId, status: newStatus },
+        ],
+        updatedAt: new Date().toISOString(),
+      }));
+      setSaveError('');
+      setSelectedSkill(null);
+    } catch (err) {
+      setSaveError(getApiError(err, 'Не удалось сохранить статус навыка.'));
     }
-    
-    // Сохраняем в хранилище (FR-15: обновит существующую, не создаст дубликат)
-    saveUserMap(currentUser.id, updatedMap);
-    
-    // Мгновенно обновляем локальный стейт для реактивного UI
-    setUserSkillStatuses(prev => ({
-      ...prev,
-      [strSkillId]: newStatus
-    }));
-    setMapData(updatedMap);
-    setSelectedSkill(null); // Закрываем модалку
   };
 
   const gaps = skills.filter(skill => {
@@ -185,6 +152,11 @@ const SkillMapPage = () => {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
+        {saveError && (
+          <div role="alert" className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">
+            {saveError}
+          </div>
+        )}
         <div className="flex flex-wrap gap-3 mb-4">
           <Link 
             to="/professions" 

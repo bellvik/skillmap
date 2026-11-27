@@ -1,8 +1,7 @@
-import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { currentUser, loading } = useAuth();
 
   // Пока происходит загрузка, можно отображать лоадер или ничего не показывать
@@ -12,6 +11,9 @@ const ProtectedRoute = ({ children }) => {
 
   // Если пользователь авторизован, пропускаем его дальше
   if (currentUser) {
+    if (adminOnly && currentUser.role !== 'admin') {
+      return <Navigate to="/" replace />;
+    }
     return children;
   }
 

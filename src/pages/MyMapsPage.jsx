@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/useAuth';
 import { useSkillStatuses } from '../hooks/useSkillStatuses';
 import { Link, useNavigate } from 'react-router-dom';
+import { getApiError } from '../api/client';
 
 const MyMapsPage = () => {
   const { currentUser } = useAuth();
@@ -9,6 +10,7 @@ const MyMapsPage = () => {
   const navigate = useNavigate();
   const [userMaps, setUserMaps] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Проверяем авторизацию
   useEffect(() => {
@@ -17,9 +19,9 @@ const MyMapsPage = () => {
       return;
     }
 
-    const loadUserMaps = () => {
+    const loadUserMaps = async () => {
       try {
-        const maps = getUserMaps(currentUser.id);
+        const maps = await getUserMaps();
         // ВАЖНО: [...maps] создаёт копию, чтобы не мутировать исходный массив из localStorage
         const sortedMaps = [...maps].sort((a, b) => {
           const dateB = new Date(b.updatedAt || 0).getTime();
@@ -27,8 +29,9 @@ const MyMapsPage = () => {
           return dateB - dateA;
         });
         setUserMaps(sortedMaps);
-      } catch (error) {
-        console.error('Ошибка загрузки карт пользователя:', error);
+      } catch (err) {
+        console.error('Ошибка загрузки карт пользователя:', err);
+        setError(getApiError(err, 'Не удалось загрузить ваши карты.'));
       } finally {
         setLoading(false);
       }
@@ -36,7 +39,7 @@ const MyMapsPage = () => {
 
     loadUserMaps();
   // ЗАВИСИМОСТИ: только примитив id и navigate. getUserMaps теперь стабильна благодаря useCallback
-  }, [currentUser?.id, navigate]); 
+  }, [currentUser?.id, getUserMaps, navigate]);
 
   // Функция для подсчета статусов навыков
   const countSkillStatuses = (skills) => {
@@ -48,7 +51,7 @@ const MyMapsPage = () => {
 
     if (skills) {
       skills.forEach(skill => {
-        if (counts.hasOwnProperty(skill.status)) {
+        if (Object.prototype.hasOwnProperty.call(counts, skill.status)) {
           counts[skill.status]++;
         }
       });
@@ -144,11 +147,14 @@ const MyMapsPage = () => {
       </div>
     );
   }
-  const handleDeleteMap = (professionId, professionName) => {
+  const handleDeleteMap = async (professionId, professionName) => {
     if (window.confirm(`Вы уверены, что хотите удалить карту "${professionName}"? Все отметки будут потеряны.`)) {
-      deleteUserMap(currentUser.id, professionId);
-      // Обновляем список на экране, убирая удалённую карту
-      setUserMaps(prev => prev.filter(map => String(map.professionId) !== String(professionId)));
+      try {
+        await deleteUserMap(professionId);
+        setUserMaps(prev => prev.filter(map => String(map.professionId) !== String(professionId)));
+      } catch (err) {
+        setError(getApiError(err, 'Не удалось удалить карту.'));
+      }
     }
   };
   return (
@@ -162,6 +168,12 @@ const MyMapsPage = () => {
           ← Назад к профессиям
         </Link>
       </div>
+
+      {error && (
+        <div role="alert" className="mb-4 rounded-lg bg-red-100 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       {userMaps.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-8 text-center">

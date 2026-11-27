@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getResourcesByIds, getCategoryName } from '../data/mockData';
 
 const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, onClose }) => {
   useEffect(() => {
@@ -13,7 +12,7 @@ const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, on
     .map(pid => allSkills.find(s => String(s.id) === String(pid))?.name)
     .filter(Boolean);
 
-  const resources = getResourcesByIds(skill.resourceIds);
+  const resources = skill.resources || [];
 
   const STATUS_OPTIONS = [
     { value: 'not_started', label: 'Не начато', icon: '○', activeClass: 'bg-gray-600 text-white border-gray-600' },
@@ -36,7 +35,7 @@ const SkillDetailModal = ({ skill, allSkills, status, userId, onUpdateStatus, on
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{skill.name}</h2>
-            <p className="text-sm text-gray-500 mt-1">Категория: {getCategoryName(skill.categoryId)}</p>
+            <p className="text-sm text-gray-500 mt-1">Категория: {skill.categoryName || 'Общее'}</p>
           </div>
           <button
             onClick={onClose}

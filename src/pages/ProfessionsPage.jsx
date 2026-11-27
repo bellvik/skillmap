@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import {getProfessions} from '../data/mockData';
+import { api, getApiError } from '../api/client';
 
 const ProfessionsPage = () => {
   const [professions, setProfessions] = useState([]);
@@ -8,14 +8,10 @@ const ProfessionsPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    try {
-      const data = getProfessions();
-      setProfessions(data);
-      setLoading(false);
-    } catch (err) {
-      setError('Не удалось загрузить список профессий');
-      setLoading(false);
-    }
+    api.get('/professions')
+      .then(({ data }) => setProfessions(data))
+      .catch((err) => setError(getApiError(err, 'Не удалось загрузить список профессий')))
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) {
