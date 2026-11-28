@@ -59,8 +59,52 @@ jobs:
 
       - name: Deploy and verify
         run: |
-          docker save skillmap-skillmap:latest \
-            | gzip -1 \
+          set -Eeuo pipefail
+
+          archive_path="$(mktemp)"
+          trap 'rm -f "$archive_path"' EXIT
+
+          echo "Preparing compressed Docker image..."
+          docker save skillmap-skillmap:latest | gzip -1 > "$archive_path"
+          archive_size="$(stat -c '%s' "$archive_path")"
+          if [ "$archive_size" -eq 0 ]; then
+            echo "Compressed Docker image is empty." >&2
+            exit 1
+          fi
+          echo "Compressed image size: $((archive_size / 1000000)) MB ($archive_size bytes)"
+
+          python3 -u -c '
+          import sys
+
+          total = int(sys.argv[1])
+          sent = 0
+          last_reported = 0
+
+          def report(percent):
+              print(
+                  f"Transfer progress: {percent}% "
+                  f"({sent / 1_000_000:.1f}/{total / 1_000_000:.1f} MB)",
+                  file=sys.stderr,
+                  flush=True,
+              )
+
+          report(0)
+          while True:
+              chunk = sys.stdin.buffer.read(1024 * 1024)
+              if not chunk:
+                  break
+              sys.stdout.buffer.write(chunk)
+              sys.stdout.buffer.flush()
+              sent += len(chunk)
+              percent = sent * 100 // total
+              if percent >= last_reported + 5 and percent < 100:
+                  last_reported = percent // 5 * 5
+                  report(last_reported)
+
+          if sent != total:
+              raise SystemExit(f"Archive size mismatch: sent {sent} of {total} bytes.")
+          report(100)
+          ' "$archive_size" < "$archive_path" \
             | ssh -i "$HOME/.ssh/id_ed25519" \
                 -T \
                 -o BatchMode=yes \
