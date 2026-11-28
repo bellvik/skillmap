@@ -38,27 +38,39 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-6">
-            {activeTab === 'login' ? 'Вход' : 'Регистрация'}
-          </h1>
-          
-          {/* Табы */}
-          <div className="flex border-b border-gray-200 mb-6">
+    <div className="mx-auto max-w-md py-4 sm:py-8">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-7 text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-violet-700">SkillMap</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+              {activeTab === 'login' ? 'С возвращением' : 'Создайте аккаунт'}
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              {activeTab === 'login'
+                ? 'Войдите, чтобы продолжить работу со своими картами.'
+                : 'Сохраняйте карты навыков и отмечайте свой прогресс.'}
+            </p>
+          </div>
+
+          <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
             <button
-              className={`py-2 px-4 font-medium text-sm ${activeTab === 'login' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'}`}
+              type="button"
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition ${
+                activeTab === 'login'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-950'
+              }`}
               onClick={() => setActiveTab('login')}
             >
               Вход
             </button>
             <button
-              className={`py-2 px-4 font-medium text-sm ${activeTab === 'register' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'}`}
+              type="button"
+              className={`rounded-lg px-4 py-2.5 text-sm font-medium transition ${
+                activeTab === 'register'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-950'
+              }`}
               onClick={() => setActiveTab('register')}
             >
               Регистрация
@@ -66,14 +78,14 @@ const LoginPage = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+            <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label htmlFor="email" className="block text-gray-700 dark:text-gray-300 mb-2">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-700">
                 Email
               </label>
               <input
@@ -81,14 +93,15 @@ const LoginPage = () => {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                autoComplete="email"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                 required
               />
             </div>
 
             {activeTab === 'register' && (
-              <div className="mb-4">
-                <label htmlFor="name" className="block text-gray-700 dark:text-gray-300 mb-2">
+              <div>
+                <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-700">
                   Имя
                 </label>
                 <input
@@ -96,14 +109,15 @@ const LoginPage = () => {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                  autoComplete="name"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                   required
                 />
               </div>
             )}
 
-            <div className="mb-6">
-              <label htmlFor="password" className="block text-gray-700 dark:text-gray-300 mb-2">
+            <div>
+              <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-700">
                 Пароль
               </label>
               <input
@@ -111,7 +125,8 @@ const LoginPage = () => {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
+                autoComplete={activeTab === 'login' ? 'current-password' : 'new-password'}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-100"
                 required
               />
             </div>
@@ -119,21 +134,17 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 transition-colors"
+              className="w-full rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? 'Обработка...' : activeTab === 'login' ? 'Войти' : 'Зарегистрироваться'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link 
-              to="/" 
-              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 text-sm"
-            >
+            <Link to="/" className="text-sm font-medium text-slate-600 hover:text-violet-700">
               На главную
             </Link>
           </div>
-        </div>
       </div>
     </div>
   );

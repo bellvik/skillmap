@@ -112,7 +112,7 @@ const LearningPlanPage = () => {
               <div className="flex-1 space-y-2">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                 <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-             1</div>
+             </div>
             </div>
           ))}
         </div>
@@ -223,26 +223,39 @@ const LearningPlanPage = () => {
                   </span>
                 </div>
                 
-                {/* Кнопки смены статуса (ШАГ 2) */}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {['not_started', 'in_progress', 'mastered'].map((s) => {
-                    const sConfig = getStatusConfig(s);
-                    const isActive = status === s;
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => handleUpdateSkillStatus(step.id, s)}
-                        className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-                          isActive 
-                            ? `${sConfig.btn} border-transparent` 
-                            : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {sConfig.icon} {sConfig.text}
-                      </button>
-                    );
-                  })}
-                </div>
+                {currentUser ? (
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    {['not_started', 'in_progress', 'mastered'].map((s) => {
+                      const sConfig = getStatusConfig(s);
+                      const isActive = status === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => handleUpdateSkillStatus(step.id, s)}
+                          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
+                            isActive
+                              ? `${sConfig.btn} border-transparent`
+                              : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {sConfig.icon} {sConfig.text}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mb-4 text-sm text-slate-600">
+                    <Link
+                      to="/login"
+                      state={{ from: { pathname: `/professions/${id}/plan` } }}
+                      className="font-semibold text-violet-700 hover:text-violet-800 hover:underline"
+                    >
+                      Войдите
+                    </Link>
+                    , чтобы отмечать прогресс и сохранять статусы навыков.
+                  </p>
+                )}
                 
                 {/* Ресурсы и ссылка на карту (ШАГ 4) */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-gray-100">

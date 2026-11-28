@@ -1,11 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, ChevronRight, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api, getApiError } from '../api/client';
 
+const getProfessionCountLabel = (count) => {
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return 'направлений';
+  if (lastDigit === 1) return 'направление';
+  if (lastDigit >= 2 && lastDigit <= 4) return 'направления';
+  return 'направлений';
+};
+
 const ProfessionsPage = () => {
   const [professions, setProfessions] = useState([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     api.get('/professions')
@@ -14,73 +26,141 @@ const ProfessionsPage = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredProfessions = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('ru');
+    if (!query) return professions;
+
+    return professions.filter((profession) => (
+      `${profession.name} ${profession.description || ''}`.toLocaleLowerCase('ru').includes(query)
+    ));
+  }, [professions, search]);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 animate-pulse">
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-full mb-2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-5/6 mb-4"></div>
-                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
+      <section aria-label="Загрузка профессий" className="space-y-6">
+        <div className="h-9 w-64 animate-pulse rounded bg-slate-200" />
+        <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          {[...Array(6)].map((_, index) => (
+            <div key={index} className="h-36 animate-pulse border-t border-slate-200 bg-white/40" />
+          ))}
         </div>
-      </div>
+      </section>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <strong className="font-bold">Ошибка! </strong>
-            <span className="block sm:inline">{error}</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (professions.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-4">Профессии пока недоступны</h2>
-            <p className="text-gray-600 dark:text-gray-400">Попробуйте обновить страницу или связаться с администрацией.</p>
-          </div>
-        </div>
-      </div>
+      <section role="alert" className="border border-red-200 bg-red-50 p-6 text-red-800">
+        <h1 className="text-xl font-semibold">Не удалось загрузить профессии</h1>
+        <p className="mt-2 text-sm">{error}</p>
+      </section>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8">Выберите профессию</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {professions.map((profession) => (
-            <div key={profession.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <div className="p-6">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">{profession.name}</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">{profession.description}</p>
-                <Link 
-                  to={`/professions/${profession.id}/setup`} 
-                  className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-300"
-                >
-                  Выбрать
-                </Link>
+    <div className="space-y-8">
+      <nav aria-label="Хлебные крошки" className="flex items-center gap-2 text-xs text-slate-500">
+        <Link to="/" className="transition hover:text-purple-800">Главная</Link>
+        <ChevronRight aria-hidden="true" size={13} />
+        <span className="font-medium text-slate-800">Профессии</span>
+      </nav>
+
+      <header className="grid gap-7 border-b border-[#d6c3b0] pb-8 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div>
+          <p className="flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-purple-800">
+            <span className="h-px w-8 bg-purple-700" />
+            Каталог направлений
+          </p>
+          <h1 className="mt-4 text-4xl font-medium text-slate-950 sm:text-5xl">
+            Выберите профессию
+          </h1>
+          <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
+            Посмотрите на структуру навыков и выберите направление, которое хотите изучить.
+          </p>
+        </div>
+
+        <label className="relative block w-full sm:w-72">
+          <span className="sr-only">Поиск профессий</span>
+          <Search
+            aria-hidden="true"
+            size={18}
+            className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-slate-500"
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Найти направление"
+            className="w-full border-0 border-b border-slate-400 bg-transparent py-3 pl-7 pr-2 text-sm text-slate-900 outline-none placeholder:text-slate-500 focus:border-purple-700 focus:ring-0"
+          />
+        </label>
+      </header>
+
+      <div className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+        <span>
+          {filteredProfessions.length === professions.length
+            ? `${professions.length} ${getProfessionCountLabel(professions.length)}`
+            : `Найдено: ${filteredProfessions.length}`}
+        </span>
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            className="border-b border-slate-400 pb-0.5 normal-case tracking-normal transition hover:border-purple-700 hover:text-purple-800"
+          >
+            Сбросить поиск
+          </button>
+        )}
+      </div>
+
+      {filteredProfessions.length > 0 ? (
+        <div className="grid gap-x-8 sm:grid-cols-2">
+          {filteredProfessions.map((profession, index) => (
+            <article
+              key={profession.id}
+              className="group border-t border-[#d6c3b0] px-3 py-6 transition-colors hover:bg-[#f5e4d7] sm:px-4"
+            >
+              <div className="flex items-start gap-4">
+                <span className="mt-1 font-serif text-lg text-purple-700">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl font-medium text-slate-950">
+                    <Link
+                      to={`/professions/${profession.id}/setup`}
+                      className="transition hover:text-purple-800"
+                    >
+                      {profession.name}
+                    </Link>
+                  </h2>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
+                    {profession.description || 'Посмотрите навыки, связанные с этим направлением.'}
+                  </p>
+                  <Link
+                    to={`/professions/${profession.id}/setup`}
+                    aria-label={`Открыть карту навыков: ${profession.name}`}
+                    className="mt-4 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-purple-800"
+                  >
+                    Изучить карту
+                    <ArrowUpRight aria-hidden="true" size={15} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      ) : (
+        <div className="border-y border-[#d6c3b0] px-4 py-14 text-center">
+          <h2 className="text-2xl font-medium text-slate-900">
+            {professions.length ? 'Ничего не найдено' : 'Профессии пока недоступны'}
+          </h2>
+          <p className="mt-3 text-sm text-slate-600">
+            {professions.length
+              ? 'Попробуйте изменить поисковый запрос.'
+              : 'Загляните позже — каталог пока пуст.'}
+          </p>
+        </div>
+      )}
     </div>
   );
 };

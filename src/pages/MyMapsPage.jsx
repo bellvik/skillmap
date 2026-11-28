@@ -221,27 +221,21 @@ const MyMapsPage = () => {
 
                 {/* Счетчики статусов */}
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center">
-                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-2 ${getStatusColor('not_started')}`}>
-                      <span className="text-sm">{getStatusIcon('not_started')}</span>
+                  {[
+                    { status: 'not_started', count: counts.not_started },
+                    { status: 'in_progress', count: counts.in_progress },
+                    { status: 'mastered', count: counts.mastered },
+                  ].map(({ status, count }) => (
+                    <div key={status} className="flex flex-col items-center text-center">
+                      <span className={`flex h-8 w-8 items-center justify-center rounded-full ${getStatusColor(status)}`}>
+                        <span className="text-sm">{getStatusIcon(status)}</span>
+                      </span>
+                      <span className="mt-1 text-sm font-medium leading-none tabular-nums text-gray-900">
+                        {count}
+                      </span>
+                      <span className="mt-1 text-xs text-gray-500">{getStatusText(status)}</span>
                     </div>
-                    <div className="text-sm font-medium text-gray-900">{counts.not_started}</div>
-                    <div className="text-xs text-gray-500">{getStatusText('not_started')}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-2 ${getStatusColor('in_progress')}`}>
-                      <span className="text-sm">{getStatusIcon('in_progress')}</span>
-                    </div>
-                    <div className="text-sm font-medium text-gray-900">{counts.in_progress}</div>
-                    <div className="text-xs text-gray-500">{getStatusText('in_progress')}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mr-2 ${getStatusColor('mastered')}`}>
-                      <span className="text-sm">{getStatusIcon('mastered')}</span>
-                    </div>
-                    <div className="text-sm font-medium text-gray-900">{counts.mastered}</div>
-                    <div className="text-xs text-gray-500">{getStatusText('mastered')}</div>
-                  </div>
+                  ))}
                 </div>
 
                 <div className="flex justify-between items-center text-sm text-gray-500 mb-4">

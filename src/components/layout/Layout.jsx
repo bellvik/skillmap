@@ -1,11 +1,20 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/useAuth';
 import { useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { ArrowRight, LogIn, LogOut, Map } from 'lucide-react';
 import { getApiError } from '../../api/client';
+import { useAuth } from '../../context/useAuth';
 
 const Layout = ({ children }) => {
   const { currentUser, logout } = useAuth();
   const [logoutError, setLogoutError] = useState('');
+
+  const navLinkClassName = ({ isActive }, display = 'inline-flex') => (
+    `${display} h-full items-center border-b-2 px-1.5 text-sm font-medium transition-colors sm:px-3 ${
+      isActive
+        ? 'border-purple-700 text-purple-800'
+        : 'border-transparent text-slate-700 hover:border-purple-400 hover:text-purple-800'
+    }`
+  );
 
   const handleLogout = async () => {
     try {
@@ -17,88 +26,75 @@ const Layout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
-      {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-700">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link to="/" className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-              SkillMap
-            </Link>
-            <nav className="flex items-center gap-2 text-xs sm:gap-4 sm:text-sm md:gap-8">
-              <Link to="/" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
-                Главная
+    <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-30 border-b border-[#dfbd76] bg-[#f4d58c]">
+        <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between gap-1 px-4 sm:gap-3 sm:px-6 lg:px-8">
+          <Link to="/" className="inline-flex shrink-0 items-center gap-2 font-serif text-base font-semibold tracking-tight text-slate-950 sm:gap-2.5 sm:text-xl">
+            <span className="flex size-9 items-center justify-center rounded-md bg-purple-700 text-white">
+              <Map aria-hidden="true" size={19} />
+            </span>
+            <span>SkillMap</span>
+          </Link>
+
+          <nav aria-label="Основная навигация" className="flex h-full items-center gap-1">
+            <NavLink end to="/" className={(link) => navLinkClassName(link, 'hidden sm:inline-flex')}>
+              <span className="hidden sm:inline">Главная</span>
+              <span className="sm:hidden">Домой</span>
+            </NavLink>
+            <NavLink to="/professions" className={navLinkClassName}>
+              Профессии
+            </NavLink>
+            {currentUser && (
+              <NavLink to="/my-maps" className={navLinkClassName}>
+                <span className="hidden sm:inline">Мои карты</span>
+                <span className="sm:hidden">Карты</span>
+              </NavLink>
+            )}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {currentUser ? (
+              <>
+                <span className="hidden max-w-36 truncate text-sm text-slate-600 xl:block">
+                  {currentUser.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  aria-label="Выйти из аккаунта"
+                  className="inline-flex items-center gap-2 rounded-md border border-slate-800/40 bg-white/50 px-2 py-2 text-sm font-medium text-slate-800 transition hover:border-slate-900 hover:bg-white sm:px-3"
+                >
+                  <LogOut aria-hidden="true" size={16} />
+                  <span className="hidden sm:inline">Выйти</span>
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-2 rounded-md border border-slate-800/50 bg-white/60 px-2 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 sm:px-3"
+              >
+                <LogIn aria-hidden="true" size={16} />
+                <span>Войти</span>
+                <ArrowRight aria-hidden="true" className="hidden sm:block" size={15} />
               </Link>
-              <Link to="/professions" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
-                Профессии
-              </Link>
-              {currentUser && (
-                <Link to="/my-maps" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
-                  Мои карты
-                </Link>
-              )}
-            </nav>
-            <div className="flex items-center space-x-4">
-              {currentUser ? (
-                <>
-                  {/* Отображение имени пользователя */}
-                  <span className="text-gray-700 dark:text-gray-300 hidden md:block">
-                    {currentUser.name}
-                  </span>
-                  {/* Кнопка выхода */}
-                  <button
-                    onClick={handleLogout}
-                    className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors"
-                  >
-                    Выйти
-                  </button>
-                </>
-              ) : (
-                <>
-                  {/* Иконка пользователя */}
-                  <Link to="/login" className="text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                  </Link>
-                </>
-              )}
-              
-              {/* Иконка LinkedIn */}
-              <a href="#" className="hidden text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors sm:inline-flex">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                  <rect width="4" height="12" x="2" y="9" />
-                  <circle cx="4" cy="4" r="2" />
-                </svg>
-              </a>
-              
-              {/* Иконка Twitter / X */}
-              <a href="#" className="hidden text-gray-700 hover:text-purple-600 dark:text-gray-300 dark:hover:text-purple-400 transition-colors sm:inline-flex">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" />
-                </svg>
-              </a>
-            </div>
+            )}
           </div>
-          {logoutError && (
-            <p role="alert" className="mt-3 text-right text-sm text-red-600">
-              {logoutError}
-            </p>
-          )}
         </div>
+        {logoutError && (
+          <p role="alert" className="mx-auto max-w-7xl px-4 pb-3 text-right text-sm text-red-700 sm:px-6 lg:px-8">
+            {logoutError}
+          </p>
+        )}
       </header>
 
-      {/* Main Content */}
-      <main className="grow container mx-auto px-4 py-8">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 py-6">
-        <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400">
-          <p>© {new Date().getFullYear()} SkillMap. Все права защищены.</p>
+      <footer className="border-t border-slate-200 bg-slate-50">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 text-sm text-slate-500 sm:px-6 lg:px-8">
+          <span className="font-medium text-slate-700">SkillMap</span>
+          <span>© {new Date().getFullYear()} SkillMap. Urfu University Project.</span>
         </div>
       </footer>
     </div>
